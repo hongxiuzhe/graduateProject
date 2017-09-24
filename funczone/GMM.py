@@ -1,0 +1,109 @@
+#coding:utf-8
+import numpy as np
+from sklearn import mixture
+import matplotlib.pyplot as plt
+
+key_data = {}
+data = []
+index_latlng = {}
+with open('station_visitNum_timeSerie_403') as f:
+    for line in f.readlines():
+        float_data = [float(flow) for flow in eval(line)[1]]
+        key = eval(line)[0]
+        # data.append(float_data)
+        key_data[key] = float_data
+with open('station_visitNum_timeSerie_413') as f2:
+    for line in f2.readlines():
+        float_data = [float(flow) for flow in eval(line)[1]]
+        key = eval(line)[0]
+        if key_data.has_key(key):
+            key_data[key].extend(float_data)
+        # data.append(float_data)
+index = 0
+with open('station_visitNum_timeSerie_404') as f:
+    for line in f.readlines():
+        float_data = [float(flow) for flow in eval(line)[1]]
+        key = eval(line)[0]
+        if key_data.has_key(key):
+            key_data[key].extend(float_data)
+            if len(key_data[key]) == 288 :
+                # print "length is" + str(len(key_data[key]))
+                index_latlng[index] = eval(line)[0]
+                index += 1
+                data.append(key_data[key])
+data_len = len(data)
+data = np.array(data)    #  (1076, 96)
+
+clf = mixture.GMM(n_components=4)
+# clf.fit_predict()
+clf.fit(data)
+#预测
+labels = clf.predict(data)
+pre = clf.predict_proba(data).tolist()
+
+label0_index = []
+label1_index = []
+label2_index = []
+label3_index = []
+# label4_index = []
+# label5_index = []
+
+
+cluster0 = open('cluster0-GMM', 'w')
+cluster1 = open('cluster1-GMM', 'w')
+cluster2 = open('cluster2-GMM', 'w')
+cluster3 = open('cluster3-GMM', 'w')
+pre_res = open('pre_res', 'w')
+
+index = 0
+for i in range(data_len):
+    pre_res.write(str(pre[i]) + "\n")
+    index += 1
+
+index = 0
+for label in labels:
+    if label == 0:
+        label0_index.append(index)
+        cluster0.write(index_latlng[index] + '\n')
+    if label == 1:
+        label1_index.append(index)
+        cluster1.write(index_latlng[index] + '\n')
+    if label == 2:
+        label2_index.append(index)
+        cluster2.write(index_latlng[index] + '\n')
+    if label == 3:
+        label3_index.append(index)
+        cluster3.write(index_latlng[index] + '\n')
+    # if label == 4:
+    #     label4_index.append(index)
+    # if label == 5:
+    #     label5_index.append(index)
+    index += 1
+
+num_label0 = len(label0_index)
+num_label1 = len(label1_index)
+num_label2 = len(label2_index)
+num_label3 = len(label3_index)
+# num_label4 = len(label4_index)
+# num_label5 = len(label5_index)
+
+agg_label0 = data[label0_index].mean(axis = 0)
+agg_label1 = data[label1_index].mean(axis = 0)
+agg_label2 = data[label2_index].mean(axis = 0)
+agg_label3 = data[label3_index].mean(axis = 0)
+# agg_label4 = data[label4_index].mean(axis = 0)
+# agg_label5 = data[label5_index].mean(axis = 0)
+
+plt.plot(agg_label0, label='Office', c = 'red')
+plt.plot(agg_label1, label = 'Scenic area', c = 'green')
+plt.plot(agg_label2, label = 'CBD', c = 'yellow')
+plt.plot(agg_label3, label = 'Transportation hub', c = 'blue')
+# plt.plot(agg_label4, label = '4')
+# plt.plot(agg_label5, label = '5')
+
+plt.title("Visit Num Cluster")
+plt.xlabel("time (15 min)")
+plt.ylabel("visit num")
+plt.grid(True)
+plt.legend()
+plt.show()
